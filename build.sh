@@ -6,9 +6,10 @@ swift build -c release
 
 APP=dist/Zanki.app
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp .build/release/Zanki "$APP/Contents/MacOS/Zanki"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
+cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 codesign --force -s - "$APP"
 echo "built: $APP"
 
