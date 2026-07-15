@@ -1,10 +1,11 @@
 import AppKit
 import SwiftUI
 
-final class StatusBarController: NSObject {
+final class StatusBarController: NSObject, NSPopoverDelegate {
     private let item: NSStatusItem
     private let popover = NSPopover()
     private let state: AppState
+    private var outsideClickMonitor: Any?
 
     init(state: AppState, onRefresh: @escaping () -> Void) {
         self.state = state
@@ -13,6 +14,7 @@ final class StatusBarController: NSObject {
         item.button?.target = self
         item.button?.action = #selector(togglePopover)
         popover.behavior = .transient
+        popover.delegate = self
         popover.appearance = NSAppearance(named: .darkAqua)  // ダーク地のデザインなのでOS設定によらずダーク固定
         popover.contentViewController = NSHostingController(
             rootView: PopoverView(state: state, onRefresh: onRefresh)
@@ -39,6 +41,22 @@ final class StatusBarController: NSObject {
             }
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             popover.contentViewController?.view.window?.makeKey()
+            // .transient の自動クローズはポップオーバー内でNSMenuを一度でも開くと
+            // 効かなくなる（AppKit内部のイベント監視が止まる・keyは保持されたまま）ため、
+            // 外側クリックの検知と閉じる処理は自前のグローバル監視で行う
+            outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(
+                matching: [.leftMouseDown, .rightMouseDown]
+            ) { [weak self] _ in
+                self?.popover.performClose(nil)
+            }
+        }
+    }
+
+    /// transient・自前監視のどちらで閉じても必ずここを通るので、監視の解除はここに集約する
+    func popoverDidClose(_ notification: Notification) {
+        if let monitor = outsideClickMonitor {
+            NSEvent.removeMonitor(monitor)
+            outsideClickMonitor = nil
         }
     }
 }
