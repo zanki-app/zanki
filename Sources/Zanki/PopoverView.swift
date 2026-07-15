@@ -37,10 +37,6 @@ struct PopoverView: View {
             Divider()
 
             HStack(spacing: 10) {
-                if let lastUpdated = state.lastUpdated {
-                    Text(lastUpdated, style: .time).font(.caption).foregroundStyle(subtle)
-                }
-                Spacer()
                 Menu {
                     Toggle("ログイン時に起動", isOn: $launchAtLogin)
                     Divider()
@@ -60,9 +56,16 @@ struct PopoverView: View {
                         launchAtLogin = SMAppService.mainApp.status == .enabled
                     }
                 }
-                Button("更新", action: onRefresh)
-                    .buttonStyle(.borderedProminent)
-                    .tint(accent)
+                Spacer()
+                if let lastUpdated = state.lastUpdated {
+                    Text(lastUpdated, style: .time).font(.caption).foregroundStyle(subtle)
+                }
+                Button(action: onRefresh) {
+                    Image(systemName: "arrow.clockwise")
+                        .offset(y: -1)  // ベースライン配置で下寄りに見えるため光学補正
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(accent)
             }
         }
         .padding(22)
