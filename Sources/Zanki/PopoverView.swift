@@ -1,3 +1,4 @@
+import AppKit
 import ServiceManagement
 import SwiftUI
 
@@ -15,6 +16,11 @@ struct PopoverView: View {
         VStack(alignment: .leading, spacing: 12) {
             if let errorText = state.errorText {
                 Text(errorText).foregroundStyle(Color(nsColor: Brand.danger))
+            }
+            if state.loginRequired {
+                Button("ターミナルでログイン", action: openTerminalForLogin)
+                    .buttonStyle(.borderedProminent)
+                    .tint(accent)
             }
             if let snapshot = state.snapshot {
                 ForEach(snapshot.limits) { limit in
@@ -72,6 +78,16 @@ struct PopoverView: View {
         .frame(width: 272)
         .background(background)
         .environment(\.colorScheme, .dark)
+    }
+
+    /// ターミナルで claude CLI を起動する。アクセストークン失効時はCLIが
+    /// リフレッシュトークンで自動更新し、それも無効ならCLIがログイン手順を案内する
+    private func openTerminalForLogin() {
+        let script = "#!/bin/zsh -il\nclaude\n"
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("zanki-login.command")
+        guard (try? script.write(to: url, atomically: true, encoding: .utf8)) != nil else { return }
+        try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
+        NSWorkspace.shared.open(url)
     }
 
     private func fullName(for limit: RateLimit) -> String {
