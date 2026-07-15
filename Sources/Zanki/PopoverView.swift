@@ -5,12 +5,16 @@ import SwiftUI
 struct PopoverView: View {
     let state: AppState
     let onRefresh: () -> Void
+    /// 外観・アクセント変更時にメニューバー再描画とポップオーバー外観の更新を頼む
+    let onThemeChange: () -> Void
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
-    private var background: Color { Color(nsColor: Brand.dark) }
-    private var foreground: Color { Color(nsColor: Brand.light) }
-    private var subtle: Color { Color(nsColor: Brand.midGray) }
-    private var accent: Color { Color(nsColor: Brand.orange) }
+    private var theme: Theme { state.theme }
+    private var background: Color { Color(nsColor: theme.background) }
+    private var foreground: Color { Color(nsColor: theme.foreground) }
+    private var subtle: Color { Color(nsColor: theme.subtle) }
+    private var accent: Color { Color(nsColor: theme.accentColor) }
+    private var onAccent: Color { Color(nsColor: theme.onAccent) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -21,6 +25,7 @@ struct PopoverView: View {
                 Button("ターミナルでログイン", action: openTerminalForLogin)
                     .buttonStyle(.borderedProminent)
                     .tint(accent)
+                    .foregroundStyle(onAccent)
             }
             if let snapshot = state.snapshot {
                 ForEach(snapshot.limits) { limit in
@@ -31,7 +36,10 @@ struct PopoverView: View {
                             Text("\(limit.percent)%").monospacedDigit().foregroundStyle(foreground)
                         }
                         ProgressView(value: min(Double(limit.percent) / 100.0, 1.0))
-                            .tint(Color(nsColor: StatusRenderer.donutColor(forPercent: limit.percent)))
+                            .tint(Color(nsColor: theme.donutColor(forPercent: limit.percent)))
+                            // 外観切替だけでは入力が変わらず再生成されないため、トラック色が
+                            // 旧外観のまま残る。id で外観ごとに作り直して確実に再解決させる
+                            .id(state.appearance)
                         Text(StatusLine.resetText(until: limit.resetsAt))
                             .font(.caption).foregroundStyle(subtle)
                     }
@@ -45,6 +53,24 @@ struct PopoverView: View {
             HStack(spacing: 10) {
                 Menu {
                     Toggle("ログイン時に起動", isOn: $launchAtLogin)
+                    Divider()
+                    // onChange だと SwiftUI の再描画後に外観が切り替わり、バーのトラック等
+                    // NSAppearance 由来の色が旧外観のまま残るため、Binding の set で
+                    // 先に applyTheme（onThemeChange）してから再描画させる
+                    Picker("外観", selection: Binding(
+                        get: { state.appearance },
+                        set: { state.appearance = $0; onThemeChange() }
+                    )) {
+                        Text("ダーク").tag(Appearance.dark)
+                        Text("ライト").tag(Appearance.light)
+                    }
+                    Picker("アクセント", selection: Binding(
+                        get: { state.accent },
+                        set: { state.accent = $0; onThemeChange() }
+                    )) {
+                        Text("オレンジ").tag(Accent.orange)
+                        Text("ホワイト").tag(Accent.white)
+                    }
                     Divider()
                     Button("Zanki を終了") { NSApp.terminate(nil) }
                 } label: {
@@ -69,6 +95,7 @@ struct PopoverView: View {
                 Button(action: onRefresh) {
                     Image(systemName: "arrow.clockwise")
                         .offset(y: -1)  // ベースライン配置で下寄りに見えるため光学補正
+                        .foregroundStyle(onAccent)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(accent)
@@ -77,7 +104,7 @@ struct PopoverView: View {
         .padding(22)
         .frame(width: 272)
         .background(background)
-        .environment(\.colorScheme, .dark)
+        .environment(\.colorScheme, state.appearance == .dark ? .dark : .light)
     }
 
     /// ターミナルで claude CLI を起動する。アクセストークン失効時はCLIが

@@ -20,8 +20,8 @@ enum StatusLine {
         let days = seconds / 86400
         let hours = (seconds % 86400) / 3600
         let minutes = (seconds % 3600) / 60
-        if days > 0 { return "リセットまで \(days)日\(hours)時間" }
-        if hours > 0 { return "リセットまで \(hours)時間\(minutes)分" }
-        return "リセットまで \(minutes)分"
+        if days > 0 { return "\(days)日\(hours)時間" }
+        if hours > 0 { return "\(hours)時間\(minutes)分" }
+        return "\(minutes)分"
     }
 }

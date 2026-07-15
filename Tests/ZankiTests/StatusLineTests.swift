@@ -17,10 +17,10 @@ private func limit(_ kind: String, _ percent: Int, model: String? = nil) -> Rate
 
     @Test func リセット残時間の文言() {
         let now = Date(timeIntervalSince1970: 0)
-        #expect(StatusLine.resetText(until: now.addingTimeInterval(60 * 30), now: now) == "リセットまで 30分")
-        #expect(StatusLine.resetText(until: now.addingTimeInterval(3600 * 3 + 60 * 12), now: now) == "リセットまで 3時間12分")
-        #expect(StatusLine.resetText(until: now.addingTimeInterval(86400 * 2 + 3600 * 5), now: now) == "リセットまで 2日5時間")
-        #expect(StatusLine.resetText(until: now.addingTimeInterval(-10), now: now) == "リセットまで 0分")
+        #expect(StatusLine.resetText(until: now.addingTimeInterval(60 * 30), now: now) == "30分")
+        #expect(StatusLine.resetText(until: now.addingTimeInterval(3600 * 3 + 60 * 12), now: now) == "3時間12分")
+        #expect(StatusLine.resetText(until: now.addingTimeInterval(86400 * 2 + 3600 * 5), now: now) == "2日5時間")
+        #expect(StatusLine.resetText(until: now.addingTimeInterval(-10), now: now) == "0分")
         #expect(StatusLine.resetText(until: nil, now: now) == "")
     }
 }
