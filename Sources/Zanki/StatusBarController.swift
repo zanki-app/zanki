@@ -16,20 +16,10 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         popover.behavior = .transient
         popover.delegate = self
         popover.contentViewController = NSHostingController(
-            rootView: PopoverView(state: state, onRefresh: onRefresh,
-                                  onThemeChange: { [weak self] in self?.applyTheme() })
+            rootView: PopoverView(state: state, onRefresh: onRefresh)
         )
-        applyTheme()
-    }
-
-    /// 外観設定をポップオーバーとメニューバーへ反映する（OS設定には追従しない・アプリ内設定のみ）
-    func applyTheme() {
-        let appearance = NSAppearance(named: state.appearance == .dark ? .darkAqua : .aqua)
-        popover.appearance = appearance
-        // 表示中のウインドウには popover.appearance の変更が反映されないことがあるため、
-        // ウインドウとビュー階層にも直接設定する
-        popover.contentViewController?.view.window?.appearance = appearance
-        popover.contentViewController?.view.appearance = appearance
+        // 配色はダーク固定（OS設定には追従しない）
+        popover.appearance = NSAppearance(named: .darkAqua)
         render()
     }
 
@@ -37,7 +27,10 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     func render() {
         guard let button = item.button else { return }
         button.attributedTitle = NSAttributedString(string: "")
-        button.image = StatusRenderer.image(for: state.snapshot, errorText: state.errorText, theme: state.theme)
+        button.image = StatusRenderer.image(
+            for: state.snapshot, errorText: state.errorText,
+            codexSnapshot: state.codexSnapshot, codexErrorText: state.codexErrorText,
+            isCodexAvailable: state.isCodexAvailable, theme: state.theme)
     }
 
     @objc private func togglePopover() {

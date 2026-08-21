@@ -14,6 +14,8 @@ enum Brand {
     static let darkGray = NSColor(srgbRed: 0x73 / 255, green: 0x71 / 255, blue: 0x6A / 255, alpha: 1)
     /// #d97757（Claudeオレンジ・プライマリアクセント）
     static let orange = NSColor(srgbRed: 0xD9 / 255, green: 0x77 / 255, blue: 0x57 / 255, alpha: 1)
+    /// #5b8dd9（Codexの通常時アクセント）
+    static let blue = NSColor(srgbRed: 0x5B / 255, green: 0x8D / 255, blue: 0xD9 / 255, alpha: 1)
     /// #e5a54b（60%以上の注意用の黄。Claudeの使用量バーの黄からの近似値）
     static let yellow = NSColor(srgbRed: 0xE5 / 255, green: 0xA5 / 255, blue: 0x4B / 255, alpha: 1)
     /// #c24b3f（オレンジと馴染む深い赤。80%以上の警告用）

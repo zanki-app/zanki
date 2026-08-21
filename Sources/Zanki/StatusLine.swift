@@ -6,8 +6,8 @@ enum StatusLine {
 
     static func label(for limit: RateLimit) -> String {
         switch limit.kind {
-        case "session": return "5h"
-        case "weekly_all": return "週"
+        case "session", "codex_session": return "5h"
+        case "weekly_all", "codex_weekly": return "週"
         default:
             if let first = limit.modelName?.first { return String(first) }
             return String(limit.kind.prefix(3))

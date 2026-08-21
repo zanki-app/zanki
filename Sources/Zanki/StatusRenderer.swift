@@ -11,6 +11,17 @@ enum StatusRenderer {
         let value: String
         let textColor: NSColor
         let donutColor: NSColor
+        let isSeparator: Bool
+
+        init(percent: Int?, label: String, value: String, textColor: NSColor,
+             donutColor: NSColor, isSeparator: Bool = false) {
+            self.percent = percent
+            self.label = label
+            self.value = value
+            self.textColor = textColor
+            self.donutColor = donutColor
+            self.isSeparator = isSeparator
+        }
     }
 
     static let capsuleHeight: CGFloat = 20
@@ -19,6 +30,8 @@ enum StatusRenderer {
     static let donutLineWidth: CGFloat = 2.5
     static let horizontalPadding: CGFloat = 9
     static let segmentGap: CGFloat = 11
+    static let separatorWidth: CGFloat = 1
+    static let separatorHeight: CGFloat = 12
     static let donutTextGap: CGFloat = 4
     static let labelValueGap: CGFloat = 3
     static let font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
@@ -45,13 +58,47 @@ enum StatusRenderer {
         }
     }
 
+    static func segments(for snapshot: UsageSnapshot?, errorText: String?,
+                         codexSnapshot: UsageSnapshot?, codexErrorText: String?,
+                         isCodexAvailable: Bool, theme: Theme) -> [Segment] {
+        var result = segments(for: snapshot, errorText: errorText, theme: theme)
+        guard isCodexAvailable else { return result }
+        result.append(Segment(percent: nil, label: "", value: "", textColor: theme.track,
+                              donutColor: theme.track, isSeparator: true))
+        if let codexSnapshot, !codexSnapshot.limits.isEmpty {
+            result += codexSnapshot.limits.map { limit in
+                Segment(percent: limit.percent, label: StatusLine.label(for: limit),
+                        value: "\(limit.percent)%", textColor: theme.foreground,
+                        donutColor: theme.codexDonutColor(forPercent: limit.percent))
+            }
+        } else {
+            let dim = theme.foreground.withAlphaComponent(0.6)
+            result.append(Segment(percent: nil, label: "", value: codexErrorText ?? "--%",
+                                  textColor: dim, donutColor: dim))
+        }
+        return result
+    }
+
     static func image(for snapshot: UsageSnapshot?, errorText: String?, theme: Theme) -> NSImage {
         let segments = segments(for: snapshot, errorText: errorText, theme: theme)
+        return image(segments: segments, theme: theme)
+    }
+
+    static func image(for snapshot: UsageSnapshot?, errorText: String?,
+                      codexSnapshot: UsageSnapshot?, codexErrorText: String?,
+                      isCodexAvailable: Bool, theme: Theme) -> NSImage {
+        image(segments: segments(for: snapshot, errorText: errorText,
+                                 codexSnapshot: codexSnapshot, codexErrorText: codexErrorText,
+                                 isCodexAvailable: isCodexAvailable, theme: theme), theme: theme)
+    }
+
+    private static func image(segments: [Segment], theme: Theme) -> NSImage {
         let labelWidths = segments.map { $0.label.isEmpty ? 0 : width(of: $0.label, font: labelFont) + labelValueGap }
         let valueWidths = segments.map { width(of: $0.value, font: font) }
         var contentWidth: CGFloat = 0
         for (index, segment) in segments.enumerated() {
             if index > 0 { contentWidth += segmentGap }
+            if segment.isSeparator { contentWidth += separatorWidth; continue }
             if segment.percent != nil { contentWidth += donutDiameter + donutTextGap }
             contentWidth += labelWidths[index] + valueWidths[index]
         }
@@ -60,16 +107,22 @@ enum StatusRenderer {
             let capsule = NSBezierPath(roundedRect: rect, xRadius: cornerRadius, yRadius: cornerRadius)
             theme.capsuleFill.setFill()
             capsule.fill()
-            if let borderColor = theme.capsuleBorder {
-                let border = NSBezierPath(roundedRect: rect.insetBy(dx: 0.25, dy: 0.25),
-                                          xRadius: cornerRadius, yRadius: cornerRadius)
-                border.lineWidth = 0.5
-                borderColor.setStroke()
-                border.stroke()
-            }
 
             var x = horizontalPadding
             for (index, segment) in segments.enumerated() {
+                if segment.isSeparator {
+                    let separator = NSBezierPath()
+                    separator.move(to: NSPoint(x: x + separatorWidth / 2,
+                                               y: (rect.height - separatorHeight) / 2))
+                    separator.line(to: NSPoint(x: x + separatorWidth / 2,
+                                               y: (rect.height + separatorHeight) / 2))
+                    separator.lineWidth = separatorWidth
+                    theme.track.setStroke()
+                    separator.stroke()
+                    x += separatorWidth
+                    if index < segments.count - 1 { x += segmentGap }
+                    continue
+                }
                 if let percent = segment.percent {
                     drawDonut(percent: percent, color: segment.donutColor, track: theme.track,
                               at: NSPoint(x: x, y: (rect.height - donutDiameter) / 2))

@@ -13,6 +13,8 @@ private func limit(_ kind: String, _ percent: Int, model: String? = nil) -> Rate
         #expect(StatusLine.label(for: limit("weekly_scoped", 0, model: "Fable")) == "F")
         #expect(StatusLine.label(for: limit("weekly_scoped", 0, model: "Opus")) == "O")
         #expect(StatusLine.label(for: limit("monthly", 0)) == "mon")
+        #expect(StatusLine.label(for: limit("codex_session", 0)) == "5h")
+        #expect(StatusLine.label(for: limit("codex_weekly", 0)) == "週")
     }
 
     @Test func リセット残時間の文言() {
