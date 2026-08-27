@@ -3,7 +3,9 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleExecutable</key><string>Zanki</string>
-    <key>CFBundleIdentifier</key><string>app.zanki.Zanki</string>
+    <!-- macOS 26 で一度メニューバー項目を拒否された識別子は復帰しないことがある。
+         app.zanki.Zanki がその状態になったため変更した（同症状が出たら識別子を変える） -->
+    <key>CFBundleIdentifier</key><string>app.zanki.ZankiApp</string>
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundleName</key><string>Zanki</string>
     <key>CFBundlePackageType</key><string>APPL</string>
