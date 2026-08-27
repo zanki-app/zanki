@@ -3,6 +3,30 @@ import Testing
 @testable import Zanki
 
 @Suite struct CodexUsageClientTests {
+    @Test func codexバイナリのディレクトリをPATH先頭に追加する() {
+        let path = CodexChildEnvironment.path(
+            addingCodexDirectory: "/opt/homebrew/bin",
+            toParentPath: "/usr/bin:/bin")
+
+        #expect(path == "/opt/homebrew/bin:/usr/bin:/bin")
+    }
+
+    @Test func codexバイナリのディレクトリがPATHにあれば重複させず先頭にする() {
+        let path = CodexChildEnvironment.path(
+            addingCodexDirectory: "/opt/homebrew/bin",
+            toParentPath: "/usr/bin:/opt/homebrew/bin:/bin")
+
+        #expect(path == "/opt/homebrew/bin:/usr/bin:/bin")
+    }
+
+    @Test func 親PATHが無いときはcodexディレクトリとシステム既定PATHを使う() {
+        let path = CodexChildEnvironment.path(
+            addingCodexDirectory: "/opt/homebrew/bin",
+            toParentPath: nil)
+
+        #expect(path == "/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin")
+    }
+
     @Test func camelCaseのトップレベルから5時間と週間を抽出する() throws {
         let data = Data(#"{"rateLimits":{"limitId":"codex","primary":{"usedPercent":25,"windowDurationMins":300,"resetsAt":1760000000},"secondary":{"usedPercent":28,"windowDurationMins":10080,"resetsAt":1760604800},"planType":"pro"}}"#.utf8)
         let snapshot = try CodexRateLimitsResponse.decode(from: data)

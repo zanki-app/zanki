@@ -157,13 +157,20 @@ private enum CodexBinaryResolver {
 }
 
 private enum CodexProcessRunner {
-    static func environment() -> [String: String] {
+    static func environment(codexBinary: String? = nil) -> [String: String] {
         let allowed = [
             "HOME", "USER", "LOGNAME", "PATH", "LANG", "LC_ALL", "LC_CTYPE", "TMPDIR",
             "XDG_CONFIG_HOME", "XDG_CACHE_HOME", "CODEX_HOME", "SHELL", "TERM",
         ]
         let parent = ProcessInfo.processInfo.environment
-        return Dictionary(uniqueKeysWithValues: allowed.compactMap { key in parent[key].map { (key, $0) } })
+        var environment = Dictionary(uniqueKeysWithValues: allowed.compactMap { key in parent[key].map { (key, $0) } })
+        if let codexBinary {
+            let directory = URL(fileURLWithPath: codexBinary).deletingLastPathComponent().path
+            environment["PATH"] = CodexChildEnvironment.path(
+                addingCodexDirectory: directory,
+                toParentPath: parent["PATH"])
+        }
+        return environment
     }
 
     static func run(binary: String, arguments: [String], timeout: TimeInterval) throws {
@@ -172,7 +179,7 @@ private enum CodexProcessRunner {
         let error = Pipe()
         process.executableURL = URL(fileURLWithPath: binary)
         process.arguments = arguments
-        process.environment = environment()
+        process.environment = environment(codexBinary: binary)
         process.standardOutput = output
         process.standardError = error
         output.fileHandleForReading.readabilityHandler = { _ = $0.availableData }
@@ -236,6 +243,23 @@ private enum CodexProcessRunner {
     }
 }
 
+/// 子プロセスへ渡す PATH の組み立て。
+/// codex はインタプリタ経由で起動されるスクリプトのことがあり（`#!/usr/bin/env node` 等）、
+/// PATH にインタプリタが無いと絶対パスで起動しても即座に終了する。ログイン項目から
+/// 起動された場合の PATH は最小構成でこれに該当するため、解決済み codex と同じ
+/// ディレクトリを先頭に加えて取りこぼしを防ぐ。
+enum CodexChildEnvironment {
+    private static let systemDefaultPath = "/usr/bin:/bin:/usr/sbin:/sbin"
+
+    static func path(addingCodexDirectory directory: String, toParentPath parentPath: String?) -> String {
+        let parentEntries = (parentPath ?? systemDefaultPath)
+            .split(separator: ":")
+            .map(String.init)
+            .filter { $0 != directory }
+        return ([directory] + parentEntries).joined(separator: ":")
+    }
+}
+
 private final class CodexRPCTransport: @unchecked Sendable {
     private let lock = NSLock()
     private let process = Process()
@@ -252,7 +276,7 @@ private final class CodexRPCTransport: @unchecked Sendable {
     init(binary: String, arguments: [String]) throws {
         process.executableURL = URL(fileURLWithPath: binary)
         process.arguments = arguments
-        process.environment = CodexProcessRunner.environment()
+        process.environment = CodexProcessRunner.environment(codexBinary: binary)
         process.standardInput = input
         process.standardOutput = output
         process.standardError = error
