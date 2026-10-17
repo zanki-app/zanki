@@ -40,11 +40,15 @@ git pull && ./build.sh install
 2. `/Applications/Zanki.app` を削除
 3. 「ログイン時に起動」を有効にしていた場合は、システム設定 > 一般 > ログイン項目 から Zanki を削除
 
+## iPhone の Scriptable への書き出し
+
+Mac に iCloud Drive の Scriptable フォルダがある場合、ギアメニューの「iPhone の Scriptable に書き出す」をオンにすると、使用率と取得時刻を `Zanki.usage.json` に書き出します（既定はオフ）。iPhone の Scriptable からこのファイルを読み、ウィジェットなどに利用できます。取得結果の反映ごとに更新し、オフにするとファイルを削除します。
+
 ## 仕組みとプライバシー
 
 - Keychain に保存された Claude Code の認証トークンを使い、`api.anthropic.com/api/oauth/usage` を 60 秒ごとにポーリングします
 - Codex の使用率は、ローカルの `codex app-server` プロセスを起動して JSON-RPC で取得します。Codex 側の認証・通信は Codex CLI 自身が行い、Zanki が OpenAI のトークンに触れることはありません
-- Zanki 自身の通信先は `api.anthropic.com` のみです（Codex 分は Codex CLI が自身の通信先へアクセスします）。トークンや使用率データを外部に送信したり、ディスクに保存したりすることはありません（トークンはメモリ内でのみ扱います）
+- Zanki 自身の通信先は `api.anthropic.com` のみです（Codex 分は Codex CLI が自身の通信先へアクセスします）。トークンはメモリ内でのみ扱います。Scriptable への書き出しを有効にした場合は、使用率データをファイルに保存し、iCloud Drive 経由で同期します
 - API が返した制限枠をそのまま表示するため、プランによる枠の増減に自動で追従します
 
 ## 注意事項

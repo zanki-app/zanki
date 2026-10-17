@@ -20,12 +20,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             applyClaude(result)
             state.lastUpdated = Date()
             controller?.render()
+            if UserDefaults.standard.bool(forKey: ScriptableExport.preferenceKey) {
+                ScriptableExport.write(state: state)
+            }
         }
         Task { @MainActor in
             let result: Result<CodexAvailability, Error> = await capture { try await codexClient.fetch() }
             applyCodex(result)
             state.lastUpdated = Date()
             controller?.render()
+            if UserDefaults.standard.bool(forKey: ScriptableExport.preferenceKey) {
+                ScriptableExport.write(state: state)
+            }
         }
     }
 
@@ -47,6 +53,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         switch result {
         case let .success(snapshot):
             state.snapshot = snapshot
+            state.claudeFetchedAt = Date()
             state.errorText = nil
             state.loginRequired = false
         case .failure(UsageError.loginRequired):
@@ -65,6 +72,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             state.codexSnapshot = nil
             state.codexErrorText = nil
         case let .success(.snapshot(snapshot)):
+            state.codexFetchedAt = Date()
             state.isCodexAvailable = true
             state.codexSnapshot = snapshot
             state.codexErrorText = nil

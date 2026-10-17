@@ -7,6 +7,8 @@ final class AppState {
     /// nil なら正常。"要ログイン" などの短い状態文言
     var errorText: String?
     var lastUpdated: Date?
+    var claudeFetchedAt: Date?
+    var codexFetchedAt: Date?
     /// 認証切れ（要ログイン）状態。ポップオーバーのログイン導線の表示条件
     var loginRequired = false
     var codexSnapshot: UsageSnapshot?

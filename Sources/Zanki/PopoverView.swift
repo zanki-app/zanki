@@ -6,6 +6,7 @@ struct PopoverView: View {
     let state: AppState
     let onRefresh: () -> Void
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+    @AppStorage(ScriptableExport.preferenceKey) private var exportScriptable = false
 
     private var theme: Theme { state.theme }
     private var background: Color { Color(nsColor: theme.background) }
@@ -48,6 +49,9 @@ struct PopoverView: View {
             HStack(spacing: 10) {
                 Menu {
                     Toggle("ログイン時に起動", isOn: $launchAtLogin)
+                    if ScriptableExport.isAvailable() {
+                        Toggle("iPhone の Scriptable に書き出す", isOn: $exportScriptable)
+                    }
                     Divider()
                     Button("Zanki を終了") { NSApp.terminate(nil) }
                 } label: {
@@ -57,6 +61,10 @@ struct PopoverView: View {
                 .menuStyle(.borderlessButton)
                 .menuIndicator(.hidden)
                 .fixedSize()
+                .onChange(of: exportScriptable) { _, enabled in
+                    if enabled { ScriptableExport.write(state: state) }
+                    else { ScriptableExport.remove() }
+                }
                 .onChange(of: launchAtLogin) { _, enabled in
                     do {
                         if enabled { try SMAppService.mainApp.register() }
