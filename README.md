@@ -44,11 +44,24 @@ git pull && ./build.sh install
 
 Mac に iCloud Drive の Scriptable フォルダがある場合、ギアメニューの「iPhone の Scriptable に書き出す」をオンにすると、使用率と取得時刻を `Zanki.usage.json` に書き出します（既定はオフ）。iPhone の Scriptable からこのファイルを読み、ウィジェットなどに利用できます。取得結果の反映ごとに更新し、オフにするとファイルを削除します。
 
+## 使用率 JSON の HTTP 送信
+
+`~/Library/Application Support/Zanki/remote-export.json` に送り先を設定すると、取得結果の反映ごとに使用率を POST します。Scriptable への書き出しとは独立して動作します。
+
+```json
+{
+  "url": "https://example.com/endpoint",
+  "headers": { "apikey": "your-key" }
+}
+```
+
+`url` は http/https、`headers` は省略可能です。本文は `{"payload": <Scriptable と同じ version 1 の JSON>}` で、既定の `Content-Type` は `application/json`（同名ヘッダーは設定側を優先）。設定は送信のたびに読み直し、ファイルを削除すると送信を停止します。不正な設定や送信失敗は無視し、タイムアウトは10秒、送信中の重複送信は行いません。
+
 ## 仕組みとプライバシー
 
 - Keychain に保存された Claude Code の認証トークンを使い、`api.anthropic.com/api/oauth/usage` を 60 秒ごとにポーリングします
 - Codex の使用率は、ローカルの `codex app-server` プロセスを起動して JSON-RPC で取得します。Codex 側の認証・通信は Codex CLI 自身が行い、Zanki が OpenAI のトークンに触れることはありません
-- Zanki 自身の通信先は `api.anthropic.com` のみです（Codex 分は Codex CLI が自身の通信先へアクセスします）。トークンはメモリ内でのみ扱います。Scriptable への書き出しを有効にした場合は、使用率データをファイルに保存し、iCloud Drive 経由で同期します
+- Zanki 自身は `api.anthropic.com` に通信し、HTTP 送信を有効にした場合は設定した送り先にも使用率データを送ります（Codex 分は Codex CLI が自身の通信先へアクセスします）。Claude の認証トークンはメモリ内でのみ扱います。Scriptable への書き出しを有効にした場合は、使用率データをファイルに保存し、iCloud Drive 経由で同期します
 - API が返した制限枠をそのまま表示するため、プランによる枠の増減に自動で追従します
 
 ## 注意事項

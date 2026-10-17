@@ -5,6 +5,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var controller: StatusBarController?
     private var timer: Timer?
     private let codexClient = CodexUsageClient()
+    private let remoteExport = RemoteExport()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         controller = StatusBarController(state: state) { [weak self] in self?.refresh() }
@@ -23,6 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if UserDefaults.standard.bool(forKey: ScriptableExport.preferenceKey) {
                 ScriptableExport.write(state: state)
             }
+            await remoteExport.send(state: state)
         }
         Task { @MainActor in
             let result: Result<CodexAvailability, Error> = await capture { try await codexClient.fetch() }
@@ -32,6 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if UserDefaults.standard.bool(forKey: ScriptableExport.preferenceKey) {
                 ScriptableExport.write(state: state)
             }
+            await remoteExport.send(state: state)
         }
     }
 
