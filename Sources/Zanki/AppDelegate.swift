@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             applyClaude(result)
             state.lastUpdated = Date()
             controller?.render()
+            LocalExport.write(state: state)
             if UserDefaults.standard.bool(forKey: ScriptableExport.preferenceKey) {
                 ScriptableExport.write(state: state)
             }
@@ -31,6 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             applyCodex(result)
             state.lastUpdated = Date()
             controller?.render()
+            LocalExport.write(state: state)
             if UserDefaults.standard.bool(forKey: ScriptableExport.preferenceKey) {
                 ScriptableExport.write(state: state)
             }
