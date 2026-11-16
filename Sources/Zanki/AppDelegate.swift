@@ -6,6 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var timer: Timer?
     private let codexClient = CodexUsageClient()
     private let remoteExport = RemoteExport()
+    @MainActor private var gate = RefreshGate()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         controller = StatusBarController(state: state) { [weak self] in self?.refresh() }
@@ -15,29 +16,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    // 表示と手元のファイルは取得が届いた順に更新し、外への送信は両方そろってから1回だけ（RefreshGate）
     func refresh() {
         Task { @MainActor in
-            let result: Result<UsageSnapshot, Error> = await capture { try await UsageClient().fetch() }
-            applyClaude(result)
-            state.lastUpdated = Date()
-            controller?.render()
-            LocalExport.write(state: state)
-            if UserDefaults.standard.bool(forKey: ScriptableExport.preferenceKey) {
-                ScriptableExport.write(state: state)
+            let round = gate.start(fetches: 2)
+            Task { @MainActor in
+                let result: Result<UsageSnapshot, Error> = await capture { try await UsageClient().fetch() }
+                applyClaude(result)
+                publishLocally()
+                await finishFetch(round: round)
             }
-            await remoteExport.send(state: state)
-        }
-        Task { @MainActor in
-            let result: Result<CodexAvailability, Error> = await capture { try await codexClient.fetch() }
-            applyCodex(result)
-            state.lastUpdated = Date()
-            controller?.render()
-            LocalExport.write(state: state)
-            if UserDefaults.standard.bool(forKey: ScriptableExport.preferenceKey) {
-                ScriptableExport.write(state: state)
+            Task { @MainActor in
+                let result: Result<CodexAvailability, Error> = await capture { try await codexClient.fetch() }
+                applyCodex(result)
+                publishLocally()
+                await finishFetch(round: round)
             }
-            await remoteExport.send(state: state)
+            // 片方が遅い・終わらないときも、更新の周期（60秒）より前に取得済みの状態で1回送る
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: Self.sendDeadlineNanoseconds)
+                guard gate.expire(round: round) else { return }
+                await remoteExport.send(state: state)
+            }
         }
+    }
+
+    private static let sendDeadlineNanoseconds: UInt64 = 30 * 1_000_000_000
+
+    @MainActor private func publishLocally() {
+        state.lastUpdated = Date()
+        controller?.render()
+        LocalExport.write(state: state)
+        if UserDefaults.standard.bool(forKey: ScriptableExport.preferenceKey) {
+            ScriptableExport.write(state: state)
+        }
+    }
+
+    @MainActor private func finishFetch(round: Int) async {
+        guard gate.finish(round: round) else { return }
+        await remoteExport.send(state: state)
     }
 
     func applicationWillTerminate(_ notification: Notification) {
