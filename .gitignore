@@ -3,3 +3,10 @@ dist/
 .DS_Store
 docs/
 AGENTS.md
+
+# 秘密ファイル（2026-11-16 秘密情報の棚卸し。置いた瞬間に追跡されないように）
+.env*
+!.env.example
+*.pem
+*.p12
+*.key
